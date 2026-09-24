@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MY ENGLISH COACH</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1f2937;--mut:#64748b;--acc:#3f5f8f;--soft:#e9eff7;--ok:#2f7d5b;--bad:#b0432f;--line:#e2e5ea}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+h1,h2,h3{font-family:Georgia,'Times New Roman',serif;font-weight:600;margin:0 0 .5rem}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.wrap{max-width:980px;margin:0 auto;padding:0 1rem}
+.brand{padding:.9rem 0 .2rem;font:600 1.3rem Georgia,serif;letter-spacing:.02em}
+.brand small{display:block;font:400 .85rem system-ui;color:var(--mut)}
+nav{display:flex;gap:.25rem;overflow-x:auto;padding-bottom:.5rem}
+nav button{border:0;background:none;padding:.5rem .8rem;border-radius:8px;color:var(--mut);font:inherit;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--soft);color:var(--acc);font-weight:600}
+main{padding:1.5rem 0 3rem}
+section{display:none}section.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem;margin-bottom:1rem}
+.grid .card{margin:0}
+.big{font:600 2rem Georgia,serif;color:var(--acc)}
+.mut{color:var(--mut);font-size:.9rem}
+.bar{height:10px;background:var(--soft);border-radius:6px;overflow:hidden;margin:.3rem 0 1rem}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .4s}
+button.b,.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:.55rem 1rem;font:inherit;cursor:pointer}
+button.g{background:var(--soft);color:var(--acc)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input,textarea,select{width:100%;font:inherit;padding:.6rem .7rem;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{min-height:170px;resize:vertical}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.row>input{flex:1;min-width:140px}
+#log{height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:.6rem;padding:.3rem}
+.m{max-width:85%;padding:.6rem .9rem;border-radius:12px;white-space:pre-wrap}
+.m.u{align-self:flex-end;background:var(--acc);color:#fff}
+.m.c{align-self:flex-start;background:var(--soft)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:.6rem;border-bottom:1px solid var(--line);vertical-align:top}
+.tw{overflow-x:auto}
+.tag{display:inline-block;padding:.1rem .6rem;border-radius:99px;background:var(--soft);color:var(--acc);font-size:.8rem}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.opt{display:block;width:100%;text-align:left;margin:.3rem 0;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.opt:disabled{cursor:default}
+li{margin:.3rem 0}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">MY ENGLISH COACH<small>From B2 to C1, one sentence at a time</small></div>
+  <nav id="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section id="dashboard"></section>
+
+<section id="teacher">
+  <div class="card">
+    <h2>AI Teacher</h2>
+    <p class="mut">Write any sentence. I'll point out what to look at and why, and you try to fix it before I show the answer. Type "answer" if you're stuck.</p>
+    <div id="log"></div>
+    <div class="row" style="margin-top:.8rem">
+      <input id="msg" placeholder="Write a sentence in English…" autocomplete="off">
+      <button class="b" onclick="send()">Send</button>
+    </div>
+  </div>
+</section>
+
+<section id="mistakes">
+  <div class="card">
+    <h2>Add a mistake</h2>
+    <div class="row">
+      <input id="mo" placeholder="What you wrote">
+      <input id="mf" placeholder="Correct version">
+      <select id="mc" style="max-width:180px"></select>
+      <button class="b" onclick="addMistake()">Add</button>
+    </div>
+  </div>
+  <div class="card"><h2>My recurring mistakes</h2><div class="tw" id="mtable"></div></div>
+</section>
+
+<section id="vocab">
+  <div class="card"><h2>Practice</h2><div id="practice"></div></div>
+  <div id="wlist"></div>
+</section>
+
+<section id="writing">
+  <div class="card">
+    <h2>Writing task</h2>
+    <select id="prompt" onchange="$('#wfb').innerHTML=''"></select>
+    <p class="mut">Aim for 180–220 words. Use linking words and precise vocabulary.</p>
+    <textarea id="essay" oninput="$('#wc').textContent=wc(this.value)" placeholder="Start writing here…"></textarea>
+    <div class="row" style="margin-top:.6rem"><button class="b" onclick="checkEssay()">Get feedback</button><span class="mut"><span id="wc">0</span> words</span></div>
+    <div id="wfb"></div>
+  </div>
+  <div class="card"><h2>Use of English</h2><p class="mut">Choose the best option for each gap.</p><div id="uoe"></div></div>
+</section>
+
+<section id="progress"></section>
+</main>
+
+<script>
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wc = t => (t.trim().match(/\S+/g) || []).length;
+const day = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+const KEY = 'myEnglishCoach.v1';
+
+/* ---------- Sample data (used on first visit) ---------- */
+const defaults = () => ({
+  streak: 3, last: day(1), grammar: 58, writing: 46, chat: [],
+  mistakes: [
+    {id:1, orig:'I have went to London yesterday.', fix:'I went to London yesterday.', cat:'Tenses', freq:5, status:'Active'},
+    {id:2, orig:'She don\'t like coffee.', fix:'She doesn\'t like coffee.', cat:'Subject–verb agreement', freq:3, status:'Improving'},
+    {id:3, orig:'We discussed about the plan.', fix:'We discussed the plan.', cat:'Prepositions', freq:4, status:'Active'},
+    {id:4, orig:'I need some informations.', fix:'I need some information.', cat:'Countability', freq:2, status:'Mastered'}
+  ],
+  words: [
+    {w:'mitigate', d:'to make something less severe or harmful', x:'The city planted trees to mitigate the effects of heat.', l:true},
+    {w:'ubiquitous', d:'seeming to be everywhere at once', x:'Smartphones have become ubiquitous in modern life.', l:true},
+    {w:'scrutinise', d:'to examine something very carefully', x:'Auditors scrutinise every transaction in the report.', l:true},
+    {w:'ambiguous', d:'open to more than one interpretation', x:'The contract wording was ambiguous, so both sides disagreed.', l:true},
+    {w:'meticulous', d:'showing great attention to detail', x:'Her meticulous notes saved the whole team hours of work.', l:false},
+    {w:'undermine', d:'to weaken gradually', x:'Constant criticism can undermine a student\'s confidence.', l:false},
+    {w:'resilient', d:'able to recover quickly from difficulty', x:'Small businesses proved resilient during the crisis.', l:false},
+    {w:'plausible', d:'seeming reasonable or likely to be true', x:'That is a plausible explanation, but we need evidence.', l:false},
+    {w:'exacerbate', d:'to make a problem worse', x:'Cutting the budget would only exacerbate the shortage.', l:false},
+    {w:'pragmatic', d:'dealing with things sensibly and realistically', x:'We took a pragmatic approach and tested the idea first.', l:false}
+  ]
+});
+function load(){ try { return Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY))); } catch(e){ return defaults(); } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+let S = load();
+
+/* Streak: counts the first activity of each day */
+function touch(){
+  const t = day(0);
+  if (S.last !== t){ S.streak = S.last === day(1) ? S.streak + 1 : 1; S.last = t; }
+}
+const clamp = n => Math.max(0, Math.min(100, n));
+const vocabPct = () => Math.round(S.words.filter(w => w.l).length / S.words.length * 100);
+const overall = () => Math.round((clamp(S.grammar) + vocabPct() + clamp(S.writing)) / 3);
+
+/* ---------- Grammar checker (rule-based "teacher brain") ----------
+   Each rule: [pattern, replacement, category, explanation (without giving the answer)] */
+const UP = {good:'excellent', bad:'dreadful', important:'crucial', big:'substantial'};
+const RULES = [
+  [/\bhave went\b/gi, 'have gone', 'Tenses', '"Went" is the past simple. After "have", English needs the past participle.'],
+  [/\b(he|she|it) don't\b/gi, "$1 doesn't", 'Subject–verb agreement', 'Third person singular takes a different auxiliary in the present simple.'],
+  [/\bmuch (people|friends|students|books)\b/gi, 'many $1', 'Quantifiers', 'Countable plural nouns need a different quantifier than uncountable ones.'],
+  [/\b(informations|advices|furnitures|knowledges)\b/gi, m => m.slice(0, -1), 'Countability', 'This noun is uncountable in English, so it has no plural form.'],
+  [/\bdiscuss(ed|es|ing)? about\b/gi, 'discuss$1', 'Prepositions', '"Discuss" is a transitive verb. It does not need a preposition.'],
+  [/\bdepend(s|ed)? of\b/gi, 'depend$1 on', 'Prepositions', 'Check which preposition follows "depend".'],
+  [/\bexplain me\b/gi, 'explain to me', 'Prepositions', '"Explain" needs a preposition before the person who receives the explanation.'],
+  [/\bI am agree\b/gi, 'I agree', 'Verb patterns', '"Agree" is already a verb. It does not need "be".'],
+  [/\bmore better\b/gi, 'better', 'Comparatives', '"Better" is already a comparative form.'],
+  [/\bif (I|you|he|she|we|they) will\b/gi, 'if $1', 'Conditionals', 'In a first conditional, the "if" clause uses a present tense, not "will".'],
+  [/\bsince (\d+|a few|two|three|four|five|six) (years|months|weeks|days)\b/gi, 'for $1 $2', 'Prepositions', '"Since" points to a starting point. A length of time needs a different word.'],
+  [/\bpeople is\b/gi, 'people are', 'Subject–verb agreement', '"People" is a plural noun, so the verb must agree.'],
+  [/\blook(ing)? forward to (see|meet|hear|work)\b/gi, 'look$1 forward to $2ing', 'Verb patterns', 'In "look forward to", the word "to" is a preposition, so a verb after it needs a special form.'],
+  [/\bvery (good|bad|important|big)\b/gi, (m, a) => UP[a.toLowerCase()], 'Vocabulary', 'Grammatically fine, but at C1 a stronger single adjective sounds more natural than "very + basic adjective".']
+];
+function check(text){
+  let fixed = text; const issues = [];
+  RULES.forEach(([re, rep, cat, why]) => {
+    const found = fixed.match(re);
+    if (found){ issues.push({bad: found[0], cat, why}); fixed = fixed.replace(re, rep); }
+  });
+  return {fixed, issues};
+}
+function logMistake(orig, fix, cat){
+  const key = orig.trim().toLowerCase();
+  let m = S.mistakes.find(x => x.orig.trim().toLowerCase() === key);
+  if (m){ m.freq++; if (m.status === 'Mastered') m.status = 'Active'; }
+  else { m = {id: Date.now() + Math.random(), orig: orig.trim(), fix, cat, freq: 1, status: 'Active'}; S.mistakes.push(m); }
+  return m;
+}
+
+/* ---------- AI Teacher chat ---------- */
+const TIPS = [
+  'C1 tip: try an inversion for emphasis, e.g. "Never have I seen…".',
+  'C1 tip: replace "a lot of" with "a great deal of" or "numerous" in formal writing.',
+  'C1 tip: use a participle clause to combine ideas, e.g. "Having finished the report, she left."',
+  'C1 tip: hedge strong claims with "tends to" or "is likely to".'
+];
+let pending = null;
+function say(r, t){ S.chat.push({r, t}); S.chat = S.chat.slice(-60); }
+function send(){
+  const el = $('#msg'), t = el.value.trim(); if (!t) return;
+  el.value = ''; touch(); say('u', t);
+  if (pending && /^(answer|show( me)?|i don'?t know)\b/i.test(t)){
+    say('c', 'Here is the corrected version: "' + pending.fixed + '"\nNow try writing a new sentence with the same structure.'); pending = null;
+  } else if (pending){
+    const r = check(t);
+    if (!r.issues.length){
+      say('c', 'Well done, that is correct. Fixing it yourself is what makes the rule stick.');
+      const m = S.mistakes.find(x => x.id === pending.id); if (m && m.status === 'Active') m.status = 'Improving';
+      S.grammar = clamp(S.grammar + 2); pending = null;
+    } else if (++pending.tries >= 2){
+      say('c', 'Let\'s look at it together: "' + pending.fixed + '"\nNotice the difference and try a fresh sentence.'); pending = null;
+    } else say('c', 'Not quite yet. Look again at "' + r.issues[0].bad + '" (' + r.issues[0].cat + '). Give it one more go, or type "answer".');
+  } else {
+    const r = check(t);
+    if (r.issues.length){
+      const m = logMistake(t, r.fixed, r.issues[0].cat); S.grammar = clamp(S.grammar - 1);
+      pending = {id: m.id, fixed: r.fixed, tries: 0};
+      say('c', 'Good attempt. One thing to look at in "' + r.issues[0].bad + '" (' + r.issues[0].cat + ').\n' + r.issues[0].why + '\nCan you rewrite the sentence correctly? I saved this in My Mistakes.');
+    } else {
+      S.writing = clamp(S.writing + 1);
+      say('c', wc(t) < 8 ? 'No errors I can spot. Try a longer sentence with a subordinate clause to stretch yourself.' : 'That reads well and I found no errors. ' + TIPS[Math.floor(Math.random() * TIPS.length)]);
+    }
+  }
+  save(); renderChat(); renderAll();
+}
+function renderChat(){
+  if (!S.chat.length) S.chat.push({r:'c', t:'Hello! I am your private English coach. Write a sentence, for example "I have went to the cinema last week", and I will show you how I work.'});
+  $('#log').innerHTML = S.chat.map(m => '<div class="m ' + m.r + '">' + esc(m.t) + '</div>').join('');
+  $('#log').scrollTop = 1e6;
+}
+$('#msg').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+/* ---------- Mistakes ---------- */
+const CATS = ['Tenses','Subject–verb agreement','Prepositions','Countability','Quantifiers','Conditionals','Verb patterns','Comparatives','Vocabulary','Other'];
+$('#mc').innerHTML = CATS.map(c => '<option>' + c + '</option>').join('');
+function addMistake(){
+  const o = $('#mo').value.trim(), f = $('#mf').value.trim(); if (!o || !f) return;
+  logMistake(o, f, $('#mc').value); touch(); $('#mo').value = $('#mf').value = ''; save(); renderAll();
+}
+function cycle(id){
+  const m = S.mistakes.find(x => x.id === id), o = ['Active','Improving','Mastered'];
+  m.status = o[(o.indexOf(m.status) + 1) % 3]; save(); renderAll();
+}
+function delM(id){ S.mistakes = S.mistakes.filter(x => x.id !== id); save(); renderAll(); }
+function renderMistakes(){
+  const rows = [...S.mistakes].sort((a, b) => b.freq - a.freq).map(m =>
+    '<tr><td>' + esc(m.orig) + '</td><td>' + esc(m.fix) + '</td><td><span class="tag">' + esc(m.cat) + '</span></td><td><b>' + m.freq + '×</b></td>' +
+    '<td><button class="b g" onclick="cycle(' + m.id + ')">' + m.status + '</button></td><td><button class="b g" onclick="delM(' + m.id + ')" aria-label="Delete">✕</button></td></tr>').join('');
+  $('#mtable').innerHTML = rows ? '<table><tr><th>You wrote</th><th>Correction</th><th>Category</th><th>Frequency</th><th>Status</th><th></th></tr>' + rows + '</table>' : '<p class="mut">No mistakes logged yet. Write a sentence in AI Teacher or add one above.</p>';
+}
+
+/* ---------- Vocabulary ---------- */
+let pw = null;
+function newPractice(){
+  const pool = S.words.filter(w => !w.l); const list = pool.length ? pool : S.words;
+  pw = list[Math.floor(Math.random() * list.length)]; renderPractice();
+}
+function renderPractice(fb){
+  if (!pw) return newPractice();
+  const gap = pw.x.replace(new RegExp(pw.w, 'i'), '______');
+  $('#practice').innerHTML = '<p>Fill the gap: <i>' + esc(gap) + '</i></p><p class="mut">Hint: ' + esc(pw.d) + '</p>' +
+    '<div class="row"><input id="pin" placeholder="Type the word" autocomplete="off"><button class="b" onclick="checkWord()">Check</button><button class="b g" onclick="newPractice()">Skip</button></div>' + (fb || '');
+  $('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') checkWord(); });
+}
+function checkWord(){
+  const v = $('#pin').value.trim().toLowerCase(); touch();
+  if (v === pw.w){ pw.l = true; S.grammar = clamp(S.grammar); save(); renderAll(); pw = null; renderPractice('<p class="ok">Correct. Word marked as learned.</p>'); }
+  else renderPractice('<p class="bad">Not quite. Read the hint again and retry.</p>');
+}
+function toggleWord(w){ const x = S.words.find(y => y.w === w); x.l = !x.l; touch(); save(); renderAll(); }
+function renderWords(){
+  $('#wlist').innerHTML = S.words.map(w => '<div class="card"><div class="row" style="justify-content:space-between"><h3>' + w.w + '</h3><button class="b ' + (w.l ? '' : 'g') + '" onclick="toggleWord(\'' + w.w + '\')">' + (w.l ? 'Learned' : 'Mark as learned') + '</button></div><p>' + esc(w.d) + '</p><p class="mut"><i>' + esc(w.x) + '</i></p></div>').join('');
+}
+
+/* ---------- Writing & Use of English ---------- */
+const PROMPTS = [
+  'Some people say social media has damaged real communication. To what extent do you agree?',
+  'Write a formal email to a university proposing a new student exchange programme.',
+  'Should governments invest more in public transport than in roads? Discuss both views.'
+];
+$('#prompt').innerHTML = PROMPTS.map(p => '<option>' + p + '</option>').join('');
+const LINKERS = ['however','moreover','furthermore','nevertheless','consequently','whereas','although','despite','in addition','on the other hand'];
+function checkEssay(){
+  const t = $('#essay').value, n = wc(t); if (n < 20){ $('#wfb').innerHTML = '<p class="bad">Write at least 20 words to get feedback.</p>'; return; }
+  touch();
+  const low = t.toLowerCase(), used = LINKERS.filter(l => low.includes(l)), r = check(t);
+  r.issues.forEach(i => logMistake(i.bad, i.bad.replace(new RegExp(i.bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), check(i.bad).fixed), i.cat));
+  const lenOk = n >= 150 && n <= 260;
+  S.writing = clamp(S.writing + (lenOk ? 2 : 1) + (used.length >= 3 ? 2 : 0) - r.issues.length); save(); renderAll();
+  $('#wfb').innerHTML = '<ul><li class="' + (lenOk ? 'ok' : 'bad') + '">Length: ' + n + ' words ' + (lenOk ? '(good range)' : '(aim for 180–220)') + '</li>' +
+    '<li class="' + (used.length >= 3 ? 'ok' : 'bad') + '">Linking words used: ' + (used.join(', ') || 'none') + (used.length < 3 ? ' – try to use at least three.' : '') + '</li>' +
+    (r.issues.length ? r.issues.map(i => '<li class="bad">Check "' + esc(i.bad) + '" (' + i.cat + '): ' + esc(i.why) + '</li>').join('') : '<li class="ok">No known error patterns found.</li>') + '</ul>';
+}
+const UOE = [
+  {q:'Had I known about the delay, I ______ earlier.', o:['would have left','will leave','left'], a:0, e:'Inverted third conditional: "Had I known…, I would have…".'},
+  {q:'She insisted ______ paying for the meal.', o:['on','for','to'], a:0, e:'"Insist on" + -ing form.'},
+  {q:'The project was finished ______ the tight deadline.', o:['despite','although','however'], a:0, e:'"Despite" is followed by a noun phrase. "Although" needs a clause.'},
+  {q:'Not only ______ late, but he also forgot the documents.', o:['was he','he was','did he'], a:0, e:'Negative adverbials at the start of a sentence trigger inversion.'},
+  {q:'It is high time we ______ the problem seriously.', o:['took','take','will take'], a:0, e:'"It\'s high time" + past simple, referring to the present.'}
+];
+function renderUoe(){
+  $('#uoe').innerHTML = UOE.map((u, i) => '<div id="u' + i + '"><p><b>' + (i + 1) + '.</b> ' + esc(u.q) + '</p>' +
+    [...u.o.keys()].sort((a, b) => (a * 7 + i) % 3 - (b * 7 + i) % 3).map(k => '<button class="opt b g" onclick="answer(' + i + ',' + k + ')">' + esc(u.o[k]) + '</button>').join('') + '<p class="mut" id="e' + i + '"></p></div>').join('');
+}
+function answer(i, k){
+  const u = UOE[i], ok = k === u.a; touch();
+  document.querySelectorAll('#u' + i + ' .opt').forEach(b => b.disabled = true);
+  $('#e' + i).innerHTML = (ok ? '<span class="ok">Correct. </span>' : '<span class="bad">Not this one. Correct answer: ' + esc(u.o[u.a]) + '. </span>') + esc(u.e);
+  S.grammar = clamp(S.grammar + (ok ? 2 : -1)); save(); renderAll();
+}
+
+/* ---------- Dashboard & Progress ---------- */
+function bar(label, v){ return '<div>' + label + ' <b>' + v + '%</b></div><div class="bar"><i style="width:' + v + '%"></i></div>'; }
+function go(tab){ document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === tab)); document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === tab)); scrollTo(0, 0); }
+function renderDash(){
+  const alive = S.last === day(0) || S.last === day(1) ? S.streak : 0;
+  const active = S.mistakes.filter(m => m.status !== 'Mastered').length;
+  const top = [...S.mistakes].filter(m => m.status !== 'Mastered').sort((a, b) => b.freq - a.freq)[0];
+  const nw = S.words.find(w => !w.l);
+  const recs = [];
+  if (top) recs.push('<li>Fix your most frequent error: <i>' + esc(top.cat) + '</i> (' + top.freq + '×). <a href="#" onclick="go(\'teacher\');return false">Practise with the teacher</a></li>');
+  if (nw) recs.push('<li>Learn the word <b>' + nw.w + '</b>. <a href="#" onclick="go(\'vocab\');return false">Open vocabulary</a></li>');
+  recs.push('<li>Complete five Use of English items. <a href="#" onclick="go(\'writing\');return false">Start exercises</a></li>');
+  $('#dashboard').innerHTML = '<div class="card"><h2>C1 readiness</h2><div class="big">' + overall() + '%</div>' + bar('Overall', overall()) + '</div>' +
+    '<div class="grid"><div class="card"><div class="big">' + alive + '</div><div class="mut">day streak</div></div>' +
+    '<div class="card"><div class="big">' + S.words.filter(w => w.l).length + '/' + S.words.length + '</div><div class="mut">words learned</div></div>' +
+    '<div class="card"><div class="big">' + active + '</div><div class="mut">recurring mistakes to fix</div></div></div>' +
+    '<div class="card"><h2>Recommended for today</h2><ul>' + recs.join('') + '</ul></div>' +
+    '<button class="b g" onclick="if(confirm(\'Reset all data to the sample data?\')){S=defaults();pending=null;save();renderChat();renderAll();renderUoe();}">Reset data</button>';
+}
+function renderProgress(){
+  $('#progress').innerHTML = '<div class="card"><h2>Progress</h2>' + bar('Grammar', clamp(S.grammar)) + bar('Vocabulary', vocabPct()) + bar('Writing', clamp(S.writing)) + bar('Overall C1 readiness', overall()) +
+    '<p class="mut">Grammar moves with chat and exercise results. Vocabulary follows learned words. Writing follows essay feedback.</p></div>';
+}
+function renderAll(){ renderDash(); renderMistakes(); renderWords(); renderProgress(); }
+
+/* ---------- Start ---------- */
+const TABS = [['dashboard','Dashboard'],['teacher','AI Teacher'],['mistakes','My Mistakes'],['vocab','Vocabulary'],['writing','Writing & Exam'],['progress','Progress']];
+$('#nav').innerHTML = TABS.map(t => '<button data-t="' + t[0] + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>').join('');
+renderChat(); renderAll(); renderUoe(); newPractice(); go('dashboard');
+</script>
+</body>
+</html>
